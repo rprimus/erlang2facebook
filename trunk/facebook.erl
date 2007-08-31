@@ -20,7 +20,7 @@
 
 -module(facebook).
 
--author('bryan D fink A alum D mit D edu').
+-author('bryanfink A alum D mit D edu').
 
 -export([app_path/0, app_path/1,
 	 login_path/0, login_path/1,
