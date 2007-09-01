@@ -1,0 +1,58 @@
+Erlprints: Sample Facebook App in Erlang & ErlyWeb
+Author: Bryan Fink (bryanfink A alum D mit D edu)
+
+Intro
+---
+
+This app is an adaption of the standard "Footprints" app that comes with the Facebook official PHP library.  It's not an exact copy, and it's likely not perfect, but it should give any developer an idea about how to use the Erlang Facebook library.
+
+
+Setup
+---
+
+Prereqs:
+1. Install and configure Erlang, Yaws, ErlyWeb, and MySQL
+2. Add the Facebook Developer application
+   a. Apply for a new key
+   b. Configure your new app (set callback to http://host/canvas/)
+3. Create MySQL tables
+   a. create database erlprints
+   b. create table print (
+        id integer auto_increment not null,
+        stepper char(32),
+        target char(32),
+        time integer,
+        primary key (id))
+   c. grant all on erlprints.print to printuser@localhost
+        identified by "printpass"
+
+Erlprints App:
+1. Place the entire erlprints directory somewhere useful
+2. Edit yaws.conf
+   a. Check paths to ErlyWeb
+   b. Check paths to Yaws
+   c. Check IP and port given for listen address
+3. Edit startyaws
+   a. Check path to Yaws
+   b. Check path to Erlang
+4. Edit start.erl
+   a. Check path to the erlprints directory
+5. Edit src/facebook_app.hrl
+   a. Set API_KEY to the key your app's key
+   b. Set SECRET to your app's secret
+   c. Set CANVAS_PATH to your app's canvas, minus the http://apps.facebook.com/
+       So, if your canvas path is http://apps.facebook.com/erlprints/,
+       set CANVAS_PATH to "erlprints"
+
+
+Running
+---
+
+1. Make sure MySQL is started
+2. cd to the erlprints directory
+3. ./startyaws
+4. c(start).
+5. start:boot().
+
+Now point your web browser to your canvas path.  You should be redirected to a login page.  After you login, you'll return to your canvas path, where you'll be invited to step on a friend.
+
