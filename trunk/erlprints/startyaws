@@ -1,0 +1,3 @@
+#!/bin/bash
+
+~/bin/yaws -i --conf ./yaws.conf -pa $HOME/apps/yaws/ebin/ -pa $HOME/apps/otp_src_R11B-2/lib -sname yawsserv
