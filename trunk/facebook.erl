@@ -18,12 +18,61 @@
 %% OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 %% THE SOFTWARE.
 
+%% file: facebook.erl
+%% description: Implementation of the public Facebook API
+%%
+%% This module makes an imediate departure from other popular Facebook API
+%% implementations: it is not object-oriented.  In general, most functions in
+%% this module have a /N call and a /N-1 call.  Use the /N call when you want
+%% to specify the session key that will be used.  Use the /N-1 call when you
+%% want to use the default infinite key.
+%%
+%% The default infinite key is usually the session key for the developer, once
+%% she has logged in with the "Keep me logged into This App" box checked.
+%%
+%% To use this module, first open your copy of facebook_app.hrl and set the
+%% parameters to your specific application.  (API_KEY and SECRET will be
+%% required, the other three are helpful).
+%%
+%% The first method you're likely to find useful is verifyParams/1.  Pass to
+%% this method the list of POST parameters that the Facebook servers send your
+%% app.  verifyParams/1 will find all parameters that should affect the
+%% signature of the call, verify the signature, and return those params without
+%% their "fb_sig_" prefix.
+%%
+%% The only other methods that do not send a request to the Facebook REST
+%% server are those that end in "_path".  These are utility functions to help
+%% you not to have to remember where everything is on Facebook's side.
+%%
+%% All other functions will send an HTTP POST to Facebook's REST server.  Their
+%% return values are a simplified Erlang representation of XML.  The basic
+%% structure is:
+%%    xml_entity() = {tag(), [attribute()], [xml_entity()]}
+%%           tag() = atom representation of the XML entity's name
+%%     attribute() = {name(), value()}
+%%          name() = string representation of the attribute's name
+%%         value() = string representation of the attribute's value
+%%
+%% So, for example, if a Facebook REST call returned
+%%     <facebook_reply>
+%%       <user>
+%%         <name nick="yes">The Dude</name>
+%%         <email>dude@the.com</email>
+%%       </user>
+%%     </facebook_reply>
+%%
+%% The return from the function that accepted that reply would be
+%%     {facebook_reply, [],
+%%      [{user, [],
+%%       [{name, [{"nick","yes"}], ["The Dude"]},
+%%        {email, [], ["dude@the.com"]}]}]}
+
 -module(facebook).
 
 -author('bryanfink A alum D mit D edu').
 
 -export([app_path/0, app_path/1,
-	 login_path/0, login_path/1,
+	 login_path/0, login_path/1, login_path/2,
 	 add_path/0, profile_path/1]).
 
 -export([call/2]).
@@ -73,23 +122,34 @@
 -include_lib("xmerl/include/xmerl.hrl").
 -include("facebook_app.hrl").
 
+%% the path to your app's canvas page
 app_path() ->
     ["http://apps.facebook.com/", ?CANVAS_PATH, "/"].
 app_path(Path) ->
     [app_path(), Path].
 
+%% the path to your app's login page
 login_path() ->
     ["http://www.facebook.com/login.php?api_key=", ?API_KEY, "&v=1.0"].
 login_path(Path) ->
     [login_path(), "&next=", Path].
+login_path(Path, true) ->
+    [login_path(Path), "&canvas"];
+login_path(Path, _) ->
+    login_path(Path).
 
+%% the path to your app's add page
 add_path() ->
     ["http://www.facebook.com/add.php?api_key=", ?API_KEY, "&v=1.0"].
 
+%% the path to the user's profile page
 profile_path(Id) ->
     ["http://www.facebook.com/profile.php?id=", Id].
 
 %% Call the Facebook server with the given method and args
+%% returns {ok, response()} on success where
+%%    response() = one of the facebook response types
+%% may also return any of the http:request/4 errors
 call(Method, Args) ->
     case http:request(post, {"http://api.facebook.com/restserver.php",
 			     [],
@@ -104,6 +164,7 @@ call(Method, Args) ->
 	    Error
     end.
 
+%% Append a unique "call_id" to the argument list before calling FB
 call_with_id(Method, Args) ->
     call(Method, [{"call_id", call_id()}|Args]).
 
@@ -112,6 +173,7 @@ call_id() ->
     io_lib:format("~4..0b~6..0b~6..0b", [M, S, Mi]).
 
 %% create the params string for the http header
+%% returns and iolist
 makeParams(Method, Args) ->
     AllArgs = lists:keysort(1, [ {"api_key", ?API_KEY},
 				 {"v", "1.0"},
@@ -121,6 +183,12 @@ makeParams(Method, Args) ->
     [ "sig=", Sig,
       [ ["&", Key, "=", yaws_api:url_encode(lists:flatten(io_lib:format("~s",[Val])))] || {Key, Val} <- AllArgs ] ].
 
+%% check that the params taken from an HTTP post are valid
+%%   (that the md5 sum checks out)
+%% returns {ok, [param()]}
+%%    param() = {name(), value()} of any fb_sig_ params
+%%    name() = the name of the params, without fb_sig_ prepended
+%%    value() = the value that param has
 verifyParams(Params) ->
     {P, S} = lists:foldl(fun({K, V}, {L, S}) ->
 				    case K of
@@ -139,6 +207,7 @@ verifyParams(Params) ->
 	    error_bad_sig
     end.
  
+%% create the md5 signature for an api call
 generate_sig(Params, Secret) ->
     ParamList = lists:map(fun({K,undefined}) -> [K, "=", ""];
 			     ({K,V}) -> [K, "=", V]
@@ -147,6 +216,8 @@ generate_sig(Params, Secret) ->
 					Secret])),
     lists:flatten(io_lib:format("~2.16.0b~2.16.0b~2.16.0b~2.16.0b~2.16.0b~2.16.0b~2.16.0b~2.16.0b~2.16.0b~2.16.0b~2.16.0b~2.16.0b~2.16.0b~2.16.0b~2.16.0b~2.16.0b", NumSig)).
 
+%% translate the response of an FB API call into Erlang elements
+%% returns {error, {facebook_error, int()}}|{ok, simple_xml()}
 parseResponse(Body) ->
     {Xml, _} = xmerl_scan:string(Body),
     case xmlToSimple(Xml) of
@@ -158,6 +229,19 @@ parseResponse(Body) ->
 	    {ok, Other}
     end.
 
+%% convert the output of xmerl:scan to a useful Erlang structure
+%% returns simple xml, ex.:
+%%  <tag1>
+%%    <tag2 hello="world">
+%%      <tag3>Check</tag3>
+%%      <tag4>Alright</tag4>
+%%    </tag2>
+%%  </tag1>
+%% becomes:
+%%  {tag1, [],
+%%   [{tag2, [{hello, "world"}],
+%%     [{tag3, [], ["Check"]},
+%%      {tag4, [], ["Alright"]}]}]}
 xmlToSimple(#xmlElement{name=Name, attributes=Attrs, content=Content}) ->
     {Name,
      [ {K, V} || #xmlAttribute{name=K, value=V} <- Attrs ],
