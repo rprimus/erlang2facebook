@@ -88,7 +88,7 @@
 	 feed_publishActionOfUser/4, feed_publishActionOfUser/5]).
 
 -export([friends_areFriends/2, friends_areFriends/3,
-	 friends_get/1, friends_get/2,
+	 friends_get/1,
 	 friends_getAppUsers/1, friends_getAppUsers/2]).
 
 -export([groups_get/2, groups_get/3,
@@ -349,11 +349,9 @@ friends_areFriends(Uids1, Uids2, Key) ->
 
 %% returns: {friends_get_response, Attrs,
 %%           [{uid, Attrs, [Uid]}]}
-friends_get(Uid) ->		 
-    friends_get(Uid, ?INFINITE_SESSION).
-friends_get(Uid, Key) ->
+friends_get(Key) ->
     call_with_id("facebook.friends.get",
-		 [{"uid", Uid}, {"session_key", Key}]).
+		 [{"session_key", Key}]).
 
 %% returns: {friends_getAppUsers_response, Attrs,
 %%           [{uid, Attrs, [Uid]}]}
