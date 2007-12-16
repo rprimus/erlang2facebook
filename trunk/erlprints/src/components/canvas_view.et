@@ -3,21 +3,20 @@
   <h2>Hi <fb:name firstnameonly="true" uid="<% User %>" useyou="false"/>!</h2></br/>
   <a href="<% facebook:add_path() %>">Put Footprints in your profile</a>, if ou haven't already!
   <form method="POST" action="<% facebook:app_path() %>">
-    <% case string:equal(User, To) of
-         true ->
-           ["<br/>Step on a friend:",
-            "<fb:friend-selector idname=\"to\"/>"];
-         false ->
-           ["Do you want to step on <fb:name uid=\"", To, "\"/>?",
-            "<input type=\"hidden\" name=\"to\" value=\"", To, "\"/>"]
-       end %>
+    <% form_body(string:equal(User, To), To) %>
     <input value="step" type="submit"/>
   </form>
   <hr/>
   These are <fb:name uid="<% To %>" possessive="true"/> Erlprints:<br/>
-  <% canvas_controller:render_prints(Prints, 10) %>
+  <% render:prints(Prints, 10) %>
   <div style="clear:both;"/>
 </div>
 <%@ index({redirect, Url}) %>
 <fb:redirect url="<% Url %>"/>
+
+<%@ form_body(true, _) %>
+<br/>Step on a friend:<fb:friend-selector idname="to"/>
+<%@ form_body(false, To) %>
+Do you want to step on <fb:name uid="<% To %>"/>?
+<input type="hidden" name="to" value="<% To %>"/>
 
