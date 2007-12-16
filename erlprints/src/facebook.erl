@@ -106,7 +106,7 @@
 	 users_getLoggedInUser/1, users_getLoggedInUser/2,
 	 users_isAppAdded/1, users_isAppAdded/2]).
 
--export([profile_setFBML/2, profile_setFBML/3,
+-export([profile_setFBML/4, profile_setFBML/5,
 	 profile_getFBML/1, profile_getFBML/2]).
 
 -export([fbml_refreshImgSrc/1, fbml_refreshImgSrc/2,
@@ -475,12 +475,17 @@ users_isAppAdded(Uid, Key) ->
 		 [{"uid", Uid}, {"session_key", Key}]).
 
 %% returns: {profile_setFBML_response, Attrs, ["1"]}
-profile_setFBML(Uid, Markup) ->
-    profile_setFBML(Uid, Markup, ?INFINITE_SESSION).
-profile_setFBML(Uid, Markup, Key) ->
-    call_with_id("facebook.profile.setFBML",
-		 [{"uid", Uid}, {"markup", Markup},
-		  {"session_key", Key}]).
+profile_setFBML(Uid, Profile, Action, Mobile) ->
+    profile_setFBML(Uid, Profile, Action, Mobile, ?INFINITE_SESSION).
+profile_setFBML(Uid, Profile, Action, Mobile, Key) ->
+    Base = [{"uid", Uid}, {"session_key", Key}],
+    P = if length(Profile) > 0 -> [{"profile", Profile}|Base];
+	   true -> Base end,
+    A = if length(Action) > 0 -> [{"profile_action", Action}|P];
+	   true -> P end,
+    Params = if length(Mobile) > 0 -> [{"mobile_fbml", Mobile}|A];
+		true -> A end,
+    call_with_id("facebook.profile.setFBML", Params).
 
 %% returns: {profile_getFBML_response, Attrs, [Fbml]}
 %%    Note that Fbml with be html-ized, that is "&lt;" instead of "<"

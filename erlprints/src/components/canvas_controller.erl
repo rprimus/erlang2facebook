@@ -57,7 +57,7 @@ do_step(From, Key, To) ->
     ToPrints = print:find({target, '=', To}, [{order_by, [{time, desc}]}]),
     Fbml = [render_profile_action(To, length(ToPrints)),
 	    render_profile_box(To, ToPrints)],
-    facebook:profile_setFBML(To, Fbml, Key),
+    facebook:profile_setFBML(To, Fbml, [], [], Key),
     
     % publish story
     FeedTitle = ["<fb:userlink uid=\"", From, "\" shownetwork=\"false\"/>",
