@@ -55,9 +55,9 @@ do_step(From, Key, To) ->
 
     % set profile fbml
     ToPrints = print:find({target, '=', To}, [{order_by, [{time, desc}]}]),
-    Fbml = [render:profile_action(To, length(ToPrints)),
-	    render:profile_box(To, ToPrints)],
-    facebook:profile_setFBML(To, Fbml, [], [], Key),
+    Action = render:profile_action(To, length(ToPrints)),
+    Profile = render:profile_box(To, ToPrints),
+    facebook:profile_setFBML(To, Profile, Action, [], Key),
     
     % publish story
     FeedTitle = render:feed_title(From, To),
