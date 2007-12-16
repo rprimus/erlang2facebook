@@ -1,0 +1,32 @@
+<%@ profile_action(Id, Count) %>
+<fb:profile-action url="<% facebook:app_path(["?to=", Id]) %>">
+  <fb:name uid="<% Id %>" firstnameonly="true" captialize="true"/> has been stepped on <% integer_to_list(Count) %> times.
+</fb:profile-action>
+
+<%@ profile_box(To, Prints) %>
+<% prints(Prints, 5) %>
+<fb:wide><% prints(lists:sublist(Prints, 5), 5) %></fb:wide>
+<div style="clear:both;"><% step_link(To) %></div>
+
+<%@ prints([], _) %>
+<%@ prints(_, 0) %>
+<%@ prints([Print|Rest], N) %>
+<div style="clear:both; padding:3px;">
+  <fb:profile-pic style="float:left;" uid="<% print:stepper(Print) %>" size="square"/>
+  <fb:name uid="<% print:stepper(Print) %>" capitalize="true"/> stepped on <fb:name uid="<% print:target(Print) %>"/> at <fb:time t="<% integer_to_list(print:time(Print)) %>"/>.
+  <br/><% step_link(print:stepper(Print)) %><br/>
+</div>
+<% prints(Rest, N-1) %>
+
+<%@ step_link(Id) %>
+<a href="<% facebook:app_path(["?to=", Id]) %>">Step on <fb:name uid="<% Id %>" firstnameonly="true"/></a>
+
+<%@ step_mail() %>
+<fb:notif-subject>You have been stepped on...</fb:notif-subject>
+<a href="<% facebook:app_path() %>">Check out your Erlprints!</a>
+
+<%@ feed_title(From, To) %>
+<fb:userlink uid="<% From %>" shownetwork="false"/> stepped on <fb:name uid="<% To %>"/>.
+
+<%@ feed_body(To) %>
+Check out <a href="<% facebook:app_path(["?to=", To]) %>"><fb:name uid="<% To %>" firstnameonly="true" possessive="true"/>Erlprints</a>.

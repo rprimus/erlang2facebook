@@ -1,6 +1,6 @@
 -module(canvas_controller).
 
--export([index/1, render_prints/2]).
+-export([index/1]).
 
 index(A) ->
     case yaws_arg:method(A) of
@@ -55,58 +55,22 @@ do_step(From, Key, To) ->
 
     % set profile fbml
     ToPrints = print:find({target, '=', To}, [{order_by, [{time, desc}]}]),
-    Fbml = [render_profile_action(To, length(ToPrints)),
-	    render_profile_box(To, ToPrints)],
+    Fbml = [render:profile_action(To, length(ToPrints)),
+	    render:profile_box(To, ToPrints)],
     facebook:profile_setFBML(To, Fbml, [], [], Key),
     
     % publish story
-    FeedTitle = ["<fb:userlink uid=\"", From, "\" shownetwork=\"false\"/>",
-		 " stepped on <fb:name uid=\"", To, "\"/>."],
-    FeedBody = ["Check out <a href=\"", facebook:app_path(["?to=", To]), "\">",
-		"<fb:name uid=\"", To,
-		"\" firstnameonly=\"true\" possessive=\"true\"/>",
-		"Erlprints</a>."],
+    FeedTitle = render:feed_title(From, To),
+    FeedBody = render:feed_body(To),
     facebook:feed_publishActionOfUser(FeedTitle, FeedBody, [], "1", Key),
 
     % send notification email
-    case facebook:notifications_send(To, render_step_mail(), [], Key) of
+    case facebook:notifications_send(To, render:step_mail(), [], Key) of
 	{notifications_send_reply, [], [Url]} ->
 	    {data, {redirect, Url}};
 	_ ->
 	    {data, {show_prints, From, To, ToPrints}}
     end.
-
-render_profile_action(Id, Count) ->
-    ["<fb:profile-action url=\"", facebook:app_path(["?to=", Id]), "\">",
-     "<fb:name uid=\"", Id, "\" firstnameonly=\"true\" captialize=\"true\"/>",
-     " has been stepped on ", integer_to_list(Count), " times.",
-     "</fb:profile-action>"].
-
-render_profile_box(To, Prints) ->
-    [render_prints(Prints, 5),
-     "<fb:wide>", render_prints(lists:sublist(Prints, 5), 5), "</fb:wide>",
-     "<div style=\"clear:both;\">", render_step_link(To), "</div>"].
-
-render_prints([Print|Rest], N) when N > 0 ->
-    ["<div style=\"clear:both; padding:3px;\">",
-     "<fb:profile-pic style=\"float:left;\" uid=\"",
-     print:stepper(Print), "\" size=\"square\"/>",
-     "<fb:name uid=\"", print:stepper(Print), "\" capitalize=\"true\"/>",
-     " stepped on <fb:name uid=\"", print:target(Print), "\"/>",
-     " at <fb:time t=\"", integer_to_list(print:time(Print)), "\"/>.",
-     "<br/>", render_step_link(print:stepper(Print)), "<br/>",
-     "</div>"
-     | render_prints(Rest, N-1)];
-render_prints(_, _) ->
-    [].
-
-render_step_link(Id) ->
-    ["<a href=\"", facebook:app_path(["?to=", Id]), "\">",
-     "Step on <fb:name uid=\"", Id, "\" firstnameonly=\"true\"/></a>"].
-
-render_step_mail() ->
-    ["<fb:notif-subject>You have been stepped on...</fb:notif-subject>",
-     "<a href=\"", facebook:app_path(), "\">Check out your Erlprints!</a>"].
 
 epoch_time() ->
     {M, S, _} = now(),
