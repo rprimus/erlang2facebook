@@ -297,19 +297,20 @@ fql_query(Query, Key) ->
 		 [{"query", Query}, {"session_key", Key}]).
 
 feed_publish(Method, Title, Body, Images, Priority, Key) ->
-    {_Cnt, Images} = 
-		  lists:foldl(fun({Img, Lnk}, {Cnt, Lst}) ->
-				      {Cnt+1,
-				       [{["image_", integer_to_list(Cnt)], Img},
-					{["image_", integer_to_list(Cnt),
-					  "_link"], Lnk}
-					| Lst]}
-			      end, {0, []}, Images),
+    {_Cnt, Images1} = 
+	lists:foldl(fun({Img, Lnk}, {Cnt, Lst}) ->
+			    {Cnt+1,
+			     [{lists:flatten(["image_", integer_to_list(Cnt)]),
+			       Img},
+			      {lists:flatten(["image_", integer_to_list(Cnt),
+					      "_link"]), Lnk}
+			      | Lst]}
+		    end, {0, []}, Images),
     call_with_id(Method,
 		 [{"title", Title}, {"body", Body},
 		  {"priority", Priority},
 		  {"session_key", Key} |
-                  Images]).
+                  Images1]).
 
 %% returns: {feed_publishStoryToUser_response, Attrs, [Result]}
 %%    Result == "1" on success, "0" on failure
