@@ -1,0 +1,1 @@
+What better language to implement a Facebook app in than Erlang?  None!  This module will allow your Erlang code to call Facebook API methods, and understand callbacks from the Facebook servers.
